@@ -1,0 +1,88 @@
+{
+  "name": "news_tool",
+  "version": "1.0",
+  "description": "Search Google News for current news articles on any topic. Returns headlines, sources, summaries, images, and links from multiple news outlets, with cross-referenced multi-source coverage.",
+  "documentation": "Searches Google News for current news articles and returns headlines, source names, publication dates, article descriptions, thumbnail images, and direct links. Use when the user asks about news, current events, what's happening, breaking stories, or wants updates on a specific topic. Common triggers: 'what's the news about...', 'latest news on...', 'any updates about...', 'what's happening in...', 'news headlines today', 'tell me about recent events in...', 'catch me up on...'. Supports regional news via the region parameter (e.g., 'US', 'GB', 'MT', 'DE') and time-range filtering via the period parameter ('1d' for today, '7d' for this week, '30d' for this month). When no region is specified, the user's locale from telemetry is used automatically. Cross-references multiple sources covering the same story and surfaces multi-source coverage as a signal of story importance. For smaller countries or regions with limited Google News coverage, include the country/region name directly in the query for better results. A second search with a broader scope (e.g., a nearby major region) often surfaces additional relevant coverage. For deep research or non-news web content, prefer searxng or wikipedia.",
+  "category": "research",
+  "icon": "fa-newspaper",
+  "trigger": {
+    "type": "on_demand",
+    "description": "Initiated by Chalie when news or current events information is needed"
+  },
+
+  "parameters": {
+    "query": {
+      "type": "string",
+      "required": true,
+      "description": "News search topic or keywords (e.g., 'AI regulation', 'climate summit', 'Malta economy')"
+    },
+    "limit": {
+      "type": "integer",
+      "required": false,
+      "default": 5,
+      "description": "Number of articles to return (1-8). Capped at 8 to avoid cognitive overload."
+    },
+    "region": {
+      "type": "string",
+      "required": false,
+      "description": "News region/country code (e.g., 'US', 'GB', 'MT', 'DE'). Omit to auto-detect from user locale."
+    },
+    "period": {
+      "type": "string",
+      "required": false,
+      "description": "Time range filter: '1d' (today), '7d' (this week), '30d' (this month). Omit for default Google News recency."
+    },
+    "language": {
+      "type": "string",
+      "required": false,
+      "description": "Language code (e.g., 'en', 'it', 'de'). Omit to auto-detect from user locale."
+    }
+  },
+
+  "returns": {
+    "results": {
+      "type": "array",
+      "description": "List of {title, source, date, published_at, description, url, image_url, also_reported_by}"
+    },
+    "count": {
+      "type": "integer",
+      "description": "Number of articles returned after deduplication"
+    },
+    "query": {
+      "type": "string",
+      "description": "The search query used"
+    },
+    "_meta": {
+      "type": "object",
+      "description": "Observability metadata: fetch_latency_ms, article_count_raw, article_count_deduped, dedup_ratio, image_availability_rate, retry_used, source_diversity, region, language"
+    }
+  },
+
+  "constraints": {
+    "timeout_seconds": 20
+  },
+
+  "config_schema": {},
+
+  "tips": [
+    "Use for current news and recent events — for historical or encyclopedic knowledge, prefer wikipedia",
+    "Set region to target specific country news (e.g., region='MT' for Malta, region='GB' for UK)",
+    "Set period='1d' for today's news only, '7d' for this week",
+    "Results are cross-referenced — articles with 'also_reported_by' are bigger, multi-source stories",
+    "Pair with web_read to get full article content from promising results",
+    "Use memorize to persist key news findings as facts or gists",
+    "For local or regional news (especially smaller countries), make two searches: one with the local region and one with the location name in the query (e.g., query='Malta economy' region='GB'). Merge findings to get better coverage.",
+    "If the first search returns a 'sparse' coverage_signal in _meta, try a broader search with the location name explicitly in the query"
+  ],
+
+  "output": {
+    "synthesize": true,
+    "card": {
+      "enabled": true,
+      "mode": "immediate",
+      "title": "News",
+      "accent_color": "#E8850C",
+      "background_color": "rgba(232, 133, 12, 0.06)"
+    }
+  }
+}
