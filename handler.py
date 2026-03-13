@@ -97,7 +97,7 @@ def execute(topic: str, params: dict, config: dict = None, telemetry: dict = Non
     # Launch outlet fetch in a background thread while Google News fetches
     _outlet_pool = ThreadPoolExecutor(max_workers=1)
     outlet_future = (
-        _outlet_pool.submit(_fetch_all_outlets, query_words)
+        _outlet_pool.submit(_fetch_all_outlets, query_words, period)
         if query_words else None
     )
 
@@ -454,7 +454,7 @@ def _fetch_outlet(source: dict) -> list:
         return []
 
 
-def _fetch_all_outlets(query_words: set) -> list:
+def _fetch_all_outlets(query_words: set, period: str = "") -> list:
     """Parallel fetch all curated outlets; return relevance-scored normalized articles.
 
     Uses ThreadPoolExecutor to fetch all sources concurrently. Articles that
@@ -496,7 +496,41 @@ def _fetch_all_outlets(query_words: set) -> list:
             article["_relevance"] = score
             result.append(article)
 
+    # Apply period filter — outlet feeds return all recent articles regardless of
+    # the user's requested time window, so we post-filter by publication date.
+    if period:
+        result = _filter_by_period(result, period)
+
     return result
+
+
+def _filter_by_period(articles: list, period: str) -> list:
+    """Post-filter articles by publication date based on period string (e.g. '1d', '7d', '30d').
+
+    Returns only articles whose published_at falls within the requested window.
+    Articles without a valid published_at are kept (benefit of the doubt).
+    """
+    from datetime import datetime, timedelta
+
+    period_days = {"1d": 1, "7d": 7, "30d": 30}
+    days = period_days.get(period)
+    if days is None:
+        return articles
+
+    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff_iso = cutoff.strftime("%Y-%m-%dT%H:%M:%S")
+
+    filtered = []
+    for a in articles:
+        pub = a.get("published_at", "")
+        if not pub:
+            # No date available — keep the article rather than silently dropping it
+            filtered.append(a)
+            continue
+        if pub >= cutoff_iso:
+            filtered.append(a)
+
+    return filtered
 
 
 # ── Relevance Scoring ──────────────────────────────────────────────────────────
